@@ -19,12 +19,18 @@ public class SpellCorrectService {
 
     private final SpellChecker symSpellCheck;
 
-    public ResponseDTO spellCorrect(RequestDTO request) throws SpellCheckException {
+    public ResponseDTO spellCorrect(RequestDTO request) {
 
         log.info("origin keyword = [{}]", request.getKeyword());
 
         final String processedKeyword = KeywordResolver.convertSyllableToJamo(request.getKeyword());
-        List<SuggestionItem> suggestionItems = symSpellCheck.lookupCompound(processedKeyword);
+        List<SuggestionItem> suggestionItems;
+
+        try {
+            suggestionItems = symSpellCheck.lookupCompound(processedKeyword);
+        } catch (SpellCheckException e) {
+            throw new RuntimeException(e);
+        }
 
         ResponseDTO responseDTO = new ResponseDTO(request.getKeyword());
 

@@ -22,6 +22,11 @@ public class SymspellConfig {
     @Bean
     public SpellCheckSettings spellCheckSettings() {
         return SpellCheckSettings.builder()
+                .prefixLength(25)
+                .deletionWeight(1.0f)
+                .insertionWeight(1.0f)
+                .replaceWeight(1.2f)
+                .transpositionWeight(0.7f)
                 .verbosity(Verbosity.ALL)
                 .build();
     }

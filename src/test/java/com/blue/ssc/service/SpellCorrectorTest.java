@@ -1,5 +1,7 @@
 package com.blue.ssc.service;
 
+import com.blue.ssc.domain.request.RequestDTO;
+import com.blue.ssc.domain.response.ResponseDTO;
 import org.assertj.core.api.Assertions;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -14,12 +16,14 @@ class SpellCorrectorTest {
     @Test
     void spellCorrect() {
         // given
+        RequestDTO request = new RequestDTO("용화", 2.0);
 
         // when
-        String result = spellCorrectService.spellCorrect("용화");
+        ResponseDTO response = spellCorrectService.spellCorrect(request);
 
         // then
-        Assertions.assertThat(result).isEqualTo("영화");
+        Assertions.assertThat(response.isCorrected()).isTrue();
+        Assertions.assertThat(response.getCorrectedKeyword()).isEqualTo("영화");
     }
 
 }
