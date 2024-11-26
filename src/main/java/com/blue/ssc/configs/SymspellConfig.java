@@ -11,7 +11,10 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 
-import java.io.*;
+import java.io.BufferedReader;
+import java.io.FileReader;
+import java.io.IOException;
+import java.util.function.Consumer;
 
 @Configuration
 public class SymspellConfig {
@@ -36,26 +39,34 @@ public class SymspellConfig {
     @Value("${dictionary.eng.path}")
     String engDictPath;
 
-    private void readKorDict(DataHolder dataHolder) throws IOException, SpellCheckException {
-        BufferedReader br = new BufferedReader(new FileReader(korDictPath));
-        String line;
-        while ((line = br.readLine()) != null) {
-            String[] arr = line.split("\\t+");
-            if (KeywordResolver.isKoreanOrEnglish(arr[0])) {
-                dataHolder.addItem(new DictionaryItem(arr[0], Double.parseDouble(arr[1]), -1.0));
-            }
+    private void readKorDict(DataHolder dataHolder) throws IOException {
+        try (BufferedReader br = new BufferedReader(new FileReader(korDictPath))) {
+            readFileDictAndAddItems(dataHolder, br);
         }
     }
 
-    private void readEngDict(DataHolder dataHolder) throws IOException, SpellCheckException {
-        BufferedReader br = new BufferedReader(new FileReader(engDictPath));
-        String line;
-        while ((line = br.readLine()) != null) {
-            String[] arr = line.split("\\t+");
-            if (KeywordResolver.isKoreanOrEnglish(arr[1])) {
-                dataHolder.addItem(new DictionaryItem(arr[1], Double.parseDouble(arr[2]), -1.0));
-            }
+    private void readEngDict(DataHolder dataHolder) throws IOException {
+        try (BufferedReader br = new BufferedReader(new FileReader(engDictPath))) {
+            readFileDictAndAddItems(dataHolder, br);
         }
+    }
+
+    private void readFileDictAndAddItems(DataHolder dataHolder, BufferedReader br) {
+        br.lines()
+                .filter(line -> !line.isEmpty())
+                .map(line -> line.split("\\t+"))
+                .filter(arr -> arr.length == 2 && KeywordResolver.isKoreanOrEnglish(arr[0]))
+                .forEach(getDictionaryItemAdder(dataHolder));
+    }
+
+    private Consumer<String[]> getDictionaryItemAdder(DataHolder dataHolder) {
+        return arr -> {
+            try {
+                dataHolder.addItem(new DictionaryItem(arr[0], Double.parseDouble(arr[1]), -1.0));
+            } catch (Exception e) {
+                throw new RuntimeException(e);
+            }
+        };
     }
 
     @Bean

@@ -1,5 +1,7 @@
 package com.blue.ssc.service;
 
+import com.blue.ssc.domain.request.RequestDTO;
+import com.blue.ssc.domain.response.ResponseDTO;
 import com.blue.ssc.util.KeywordResolver;
 import io.github.mightguy.spellcheck.symspell.api.SpellChecker;
 import io.github.mightguy.spellcheck.symspell.common.SuggestionItem;
@@ -16,25 +18,30 @@ import java.util.List;
 public class SpellCorrectService {
 
     private final SpellChecker symSpellCheck;
-    private static final double MAX_EDIT_DISTANCE = 2.0;
 
-    public String spellCorrect(final String originKeyword) {
+    public ResponseDTO spellCorrect(RequestDTO request) throws SpellCheckException {
 
-        log.info("origin = [{}]", originKeyword);
+        log.info("origin keyword = [{}]", request.getKeyword());
 
-        final String processedKeyword = KeywordResolver.convertSyllableToJamo(originKeyword);
+        final String processedKeyword = KeywordResolver.convertSyllableToJamo(request.getKeyword());
+        List<SuggestionItem> suggestionItems = symSpellCheck.lookupCompound(processedKeyword);
 
-        List<SuggestionItem> suggestionItems;
-        try {
-            suggestionItems = symSpellCheck.lookupCompound(processedKeyword);
-        } catch (SpellCheckException e) {
-            throw new RuntimeException(e);
+        ResponseDTO responseDTO = new ResponseDTO(request.getKeyword());
+
+        if (suggestionItems.size() == 0) {
+            return responseDTO;
         }
 
-        final String result = suggestionItems.get(0).getDistance() > MAX_EDIT_DISTANCE
-                ? originKeyword : KeywordResolver.convertJamoToSyllable(suggestionItems.get(0).getTerm());
+        final String correctedKeyword = suggestionItems.get(0).getDistance() > request.getDistance()
+                ? request.getKeyword() : KeywordResolver.convertJamoToSyllable(suggestionItems.get(0).getTerm());
 
-        log.info("corrected = [{}]", result);
-        return result;
+        if (!request.getKeyword().equals(correctedKeyword)) {
+            log.info("corrected keyword = [{}]", correctedKeyword);
+            responseDTO.setCorrectedKeyword(correctedKeyword);
+            responseDTO.setCorrected(true);
+            responseDTO.setDistance(suggestionItems.get(0).getDistance());
+        }
+
+        return responseDTO;
     }
 }
